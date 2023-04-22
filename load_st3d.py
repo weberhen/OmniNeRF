@@ -5,10 +5,11 @@ import math
 import cv2
 import glob
 
-def load_st3d_data(baseDir='/home/jessie/datasets/st3d_rgbdxyz/nerf/03007_834036', stage=0):
+def load_st3d_data(baseDir='/root/codes/OmniNeRF/output_experiment/', stage=0):
 
+    os.makedirs(baseDir, exist_ok=True)
     basename = baseDir.split('/')[-1]+'_'
-    rgb = np.asarray(Image.open(os.path.join(baseDir, basename+'rgb.png'))) / 255.0
+    rgb = np.asarray(Image.open(os.path.join(baseDir, basename+'rgb.png')))[:,:,:3] / 255.0
     
     if baseDir.split('/')[-2] == 'mp3d':
         print(os.path.join(baseDir, basename+'depth.exr'))
@@ -17,6 +18,9 @@ def load_st3d_data(baseDir='/home/jessie/datasets/st3d_rgbdxyz/nerf/03007_834036
 
     else:
         d = np.asarray(Image.open(os.path.join(baseDir, basename+'d.png')))
+    # make d 1D instead of 3D, so pick one channel but make it 3D
+    d = d[:,:,0].reshape(d.shape[0], d.shape[1], 1)
+
     gradient = cv2.Laplacian(rgb, cv2.CV_64F)
     gradient = 2 * (gradient - np.min(gradient)) / np.ptp(gradient) -1
         
@@ -24,7 +28,7 @@ def load_st3d_data(baseDir='/home/jessie/datasets/st3d_rgbdxyz/nerf/03007_834036
     max_depth = np.max(d)
     d = d.reshape(rgb.shape[0], rgb.shape[1], 1) / max_depth
     
-    H, W = 512, 1024
+    H, W = 1024, 2048
     _y = np.repeat(np.array(range(W)).reshape(1,W), H, axis=0)
     _x = np.repeat(np.array(range(H)).reshape(1,H), W, axis=0).T
 
@@ -88,7 +92,7 @@ def load_st3d_data(baseDir='/home/jessie/datasets/st3d_rgbdxyz/nerf/03007_834036
             elif i < 110:
                 rays_o_test.append(np.repeat(p.reshape(1, -1), H*W, axis=0))
                 rays_d_test.append(original_coord.reshape(-1, 3))
-                rays_rgb_test.append(np.asarray(Image.open(os.path.join(baseDir, 'test', 'rgb_{}.png'.format(i-100)))).reshape(-1 ,3))
+                rays_rgb_test.append(np.asarray(Image.open(os.path.join(baseDir, 'test', 'rgb_{}.png'.format(i-100))))[:,:,:3].reshape(-1 ,3))
                 rays_depth_test.append(dep.reshape(-1))
 
             elif i == 110:
